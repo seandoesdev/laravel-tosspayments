@@ -118,7 +118,14 @@ class TossPayments
         $retryTimes = config('tosspayments.retry.times', 3);
         $retrySleep = config('tosspayments.retry.sleep', 100);
 
-        $this->client = Http::withHeaders($this->headers)
+        $headers = $this->headers;
+
+        // v2 API는 Idempotency-Key 헤더 필수
+        if ($this->version === 'v2') {
+            $headers['Idempotency-Key'] = Str::uuid()->toString();
+        }
+
+        $this->client = Http::withHeaders($headers)
             ->timeout($timeout)
             ->retry($retryTimes, $retrySleep, function ($exception) {
                 return $exception instanceof \Illuminate\Http\Client\RequestException
@@ -146,7 +153,14 @@ class TossPayments
      */
     public function testCode(string $code): static
     {
-        $this->client = Http::withHeaders($this->headers + ['TossPayments-Test-Code' => $code])
+        $headers = $this->headers + ['TossPayments-Test-Code' => $code];
+
+        // v2 API는 Idempotency-Key 헤더 필수
+        if ($this->version === 'v2') {
+            $headers['Idempotency-Key'] = Str::uuid()->toString();
+        }
+
+        $this->client = Http::withHeaders($headers)
             ->timeout(config('tosspayments.timeout', 30))
             ->acceptJson();
 

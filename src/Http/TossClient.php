@@ -83,7 +83,7 @@ class TossClient implements PaymentClientInterface
      */
     private function buildRequest(): PendingRequest
     {
-        return Http::withBasicAuth($this->secretKey, '')
+        $request = Http::withBasicAuth($this->secretKey, '')
             ->timeout($this->timeout)
             ->withOptions(['verify' => $this->sslVerify])
             ->retry(
@@ -94,6 +94,15 @@ class TossClient implements PaymentClientInterface
             )
             ->acceptJson()
             ->asJson();
+
+        // v2 API는 Idempotency-Key 헤더 필수
+        if ($this->version === 'v2') {
+            $request = $request->withHeaders([
+                'Idempotency-Key' => \Illuminate\Support\Str::uuid()->toString(),
+            ]);
+        }
+
+        return $request;
     }
 
     /**
